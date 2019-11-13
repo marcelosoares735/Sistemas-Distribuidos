@@ -16,10 +16,10 @@ class Interno:
 			# iniciando o servidor
 			if int(input()) == 0 : 
 				print("Digite a porta do servidor")
-				#self.app = tela.Aplicativo(self, tela.TelaServidor)
-				#self.app.mainloop()
-				self.no = node.Node("",int(input()))
-				self.no.servidor(self)
+				self.app = tela.Aplicativo(self, tela.TelaInicioServidor)
+				self.app.mainloop()
+				#self.no = node.Node("",int(input()))
+				#self.no.servidor(self)
 			# iniciando a tela do cliente
 			else:
 				#try :
@@ -160,7 +160,10 @@ class Interno:
 			# se for cliente
 			if self.no.tipo :
 				# deve adicionar na lista de mensagens do chat no next?
-				next.msgChat.append([msg, "recebido"])
+				l = [i.nome for i in self.no.online]
+				l = l.index(remetente)
+				l = self.no.online[l] #CRITICO
+				l.msgChat.append([msg, "recebido"])
 				print("cliente recebeu a msg", msg)
 				self.app.tela_atual.mostra_msg(remetente, destinatario)
 				return
@@ -171,6 +174,7 @@ class Interno:
 				l = l.index(destinatario)
 				l = self.no.online[l] #CRITICO
 				l.send(jsn)
+				self.app.tela_atual.reload(jsn, "enviado: ")
 				print("o servidor repassou a mensagem", msg)
 				return
 
@@ -184,7 +188,9 @@ class Interno:
 	def alert(self,next,conf,msg,send=True):
 		ms = mensagem.Mensagem()
 		print(next.port,":",msg)
-		if send : next.send(ms.confirm(conf[0],conf[1]))
+		if send : 
+			next.send(ms.confirm(conf[0],conf[1]))
+			self.app.tela_atual.reload(ms.confirm(conf[0],conf[1]), "enviado: ")
 	
 	# verifica se já existe o usuário
 	# CRÍTICO TODO
@@ -200,6 +206,7 @@ class Interno:
 		ms = mensagem.Mensagem()
 		self.no.broadcast(ms.login(next))
 		self.no.online.append(next)
+		self.app.tela_atual.reload()
 		print("lista online:")
 		for i in self.no.online:
 			print("--> "+i.nome)

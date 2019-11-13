@@ -1,6 +1,7 @@
 import tkinter as tk
 import node
 import json
+import _thread
 
 # ----------------------------------------------------------------------------
 # gerencia todas as telas do sistema
@@ -88,57 +89,137 @@ class Menu(tk.Frame):
 	def __init__(self,master):
 		self.master = master
 		self.frame = tk.Frame.__init__(self,master,width=300)
-		tk.Label(self.frame,text="Exibindo lista de clientes").pack()
+		self.label = tk.Label(self.frame,text="Exibindo lista de clientes")
+		self.label.pack()
 		self.lb = []
+		self.entradas = []
 		self.reload()
-		
+		self.conversa = " "
+
+	
 	
 	def reload(self):
 	
-		
-		while len(self.lb):
-			i = self.lb.pop()
+		for i in self.entradas:
 			i.pack_forget()
 		
-		nomes = [i.nome for i in self.master.intr.no.online]
-		if not nomes : nomes = ["ninguem"]
-		var = tk.StringVar()
-		var.set(nomes[0])
+		self.nomes = [i.nome for i in self.master.intr.no.online]
+		if not self.nomes : self.nomes = ["ninguem"]
+		self.var = tk.StringVar()
+		self.var.set(self.nomes[0])
 		def exemplo(nome):
-			print(nome)
-
-		op = tk.OptionMenu(self, var, *nomes, command = exemplo)
-		op.pack()
+			self.mostra_msg(nome,"")
+		self.conversa = self.var
+		self.op = tk.OptionMenu(self, self.var, *self.nomes, command = exemplo)
+		self.op.pack()
+		
 		txt = tk.Entry(self)
 		txt.pack()
 
 		def enviarMsg():
 			intr = self.master.intr
-			print("enviando msg ",txt.get(),"para: ", var.get())
-			intr.no.next.send(intr.no.next.msg.chatMsg(var.get(),intr.no.nome,txt.get()))
+			print("enviando msg ",txt.get(),"para: ", self.var.get())
+			intr.no.next.send(intr.no.next.msg.chatMsg(self.var.get(),intr.no.nome,txt.get()))
 		btn = tk.Button(self, text = "enviar", command = enviarMsg)
 		btn.pack()
-		self.lb.append(txt)
-		self.lb.append(btn)
-		self.lb.append(op)
+		self.entradas=[self.op,txt,btn]
+		#self.lb.append(txt)
+		#self.lb.append(btn)
+		#self.lb.append(op)
 
 	def mostra_msg(self, remetente, destinatario):
+
+		while len(self.lb):
+			i = self.lb.pop()
+			i.pack_forget()
+
 		intr = self.master.intr
-		tk.Label(self.frame, text =  remetente + " enviou: "  + intr.no.next.msgChat.pop(0)[0]).pack()
+		# critical
+		l = [ i.nome for i in self.master.intr.no.online]
+		l = l.index(remetente)
+		l = self.master.intr.no.online[l]
+		print("lista",l.msgChat)
+		for i in  l.msgChat:
+			t = tk.Label(self.frame, text =  i[1] + " : "  + i[0])
+			t.pack()
+			self.lb.append(t)
+
+	def reset(self):
+		self.master.intr.no = None
+		self.label.pack_forget()
+		self.nomes.clear()
+		self.var.set("")
+		self.op['menu'].delete(0, tk.END)
+		while len(self.lb):
+			i = self.lb.pop()
+			i.pack_forget()
+			
+			
+
+class TelaInicioServidor(tk.Frame):
+	def __init__(self, master):
+		self.master = master
+		self.frame = tk.Frame.__init__(self, master, width = 500)
+		f1 = tk.Frame(self)
+		f1.pack()
+		f2 = tk.Frame(self)
+		f2.pack()
+
+		def criarServidor():
+				self.master.intr.no = node.Node("",int(self.porta.get()))
+				self.master.intr.no.servidor(self.master.intr)
+				
+				
+
+		def criarTreadServidor():
+			_thread.start_new_thread(criarServidor,())
+			
+			
+
+		tk.Label(f1, text = "porta ", relief = tk.RIDGE, width = 10).pack(side = tk.LEFT)
+		self.porta = tk.Entry(f1, relief = tk.SUNKEN, width = 20)
+		self.porta.pack(side = tk.RIGHT)
+		btn = tk.Button(f2, text = "criar servidor", command = criarTreadServidor)
+		btn.pack()
 
 class TelaServidor(tk.Frame):
 	def __init__(self, master):
 		self.master = master
-		self.frame = tk.Frame.__init__(self, master, width = 300)
-		def criarServidor():
-			self.master.intr.no = node.Node("",int(self.porta.get()))
-			self.master.intr.no.servidor(self)
+		self.frame = tk.Frame.__init__(self, master)
+		self.lb = []
+		self.f1 = tk.Frame(self)
+		self.f1.pack()
+		self.f2 = tk.Frame(self)
+		self.f2.pack()
+		
+		#tk.Label(self.f1, text = "clientes logados: ").pack(side = tk.LEFT, anchor = 's')
+		self.listboxUsuarios = tk.Listbox(self.f2)
+		self.listboxUsuarios.pack(side = tk.LEFT)
+		self.listboxUsuarios.insert(tk.END, "clientes logados")
+		self.listboxUsuarios.config(height = 30)
+		
+		
+		#tk.Label(self.f1, text = "log do servidor").pack(side = tk.RIGHT, anchor = 'w')
+		self.listboxLog = tk.Listbox(self.f2)
+		self.listboxLog.pack(side = tk.RIGHT)
+		self.listboxLog.insert(tk.END, "log do sistema")
+		self.listboxLog.config(width = 80, height = 30)
 
-		tk.Label(self.frame, text = "porta ").pack()
-		self.porta = tk.Entry(self)
-		self.porta.pack()
-		btn = tk.Button(self, text = "criar servidor", command = criarServidor)
-		btn.pack()
+	def reload(self, msg = 0, tipo = 0):
+		if msg:
+			self.listboxLog.insert(tk.END, tipo +  msg)
+			#self.listboxLog.insert(tk.END,)
+
+		#self.listboxUsuarios.pack_forget()
+		self.listboxUsuarios.delete(1, tk.END)
+		for i in self.master.intr.no.online :
+			self.listboxUsuarios.insert(tk.END, i.nome)
+			#self.listboxUsuarios.pack(side = tk.LEFT)
+			
+		#self.listboxUsuarios.pack(side = tk.LEFT)
+			
+
+
 		
 
 	

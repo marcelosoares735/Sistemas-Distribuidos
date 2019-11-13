@@ -2,6 +2,7 @@ import socket
 import _thread
 import interno
 import mensagem
+import tela
 
 # 10.40.1.60
 # 10.20.8.182 meu ip
@@ -41,8 +42,12 @@ class Node:
 		while True:
 			jsn = self.next.listen()
 			if not jsn: break
-			self.msg.add(self.next,jsn)
+			self.msg.add(self.next,	jsn)
 			self.intr.execute()
+		
+		self.intr.app.tela_atual.reset()
+		self.intr.app.trocarTela(tela.Login)
+		#
 	
 	# define nó como servidor
 	# o intr permite alteração da parte "interna" do software
@@ -53,7 +58,9 @@ class Node:
 		self.con = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		self.con.bind((self.host,self.port));
 		self.con.listen(True)
+		self.intr.app.trocarTela(tela.TelaServidor)
 		print("Servidor iniciado.",socket.socket.getsockname(self.con)," Aguardando clientes.")
+		
 		while True:
 			no = self.connect_with_client()
 			print(no.port,": entrou no servidor")
@@ -82,6 +89,7 @@ class Node:
 	def listen(self):
 		try: jsn = self.con.recv(1024).decode()
 		except: jsn = ""
+		
 		print("<REC> ",jsn)
 		return jsn
 	
@@ -97,6 +105,7 @@ class Node:
 		next.intr = None
 		while True:
 			jsn = next.listen()
+			self.intr.app.tela_atual.reload(jsn, "recebido: ")
 			self.msg.add(next,jsn)
 			if not jsn: break
 			self.intr.execute()
